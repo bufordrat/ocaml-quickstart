@@ -1,0 +1,65 @@
+** Initializing the Project
+
+   Run these commands to get the project into library/executable shape
+   with the executable at the root of the project and the library in a
+   directory called =lib=:
+  
+   #+begin_example
+   $ dune init project new_project
+   $ cd new_project
+   $ rm -R bin
+   $ dune init exe main
+   $ echo 'let message = "GOODBYE CRUEL WORLD (is underrated)"' > lib/lib.ml
+   $ echo '(library (name lib))' > lib/dune
+   $ echo '(executable (public_name new_project) (name main) (libraries lib))' > dune
+   $ echo 'let () = print_endline Lib.message' > ./main.ml
+   $ cat - > use-output.top <<EOF
+   (*
+   * provide 4.11's ocaml toplevel #use_output directive for pre-4.11 ocamls
+   * see: <https://dune.readthedocs.io/en/stable/toplevel-integration.html>
+   *)
+   
+   #directory "+compiler-libs"
+
+   let try_finally ~always f =
+     match f () with
+     | x ->
+       always ();
+       x
+     | exception e ->
+       always ();
+       raise e
+
+   let use_output command =
+     let fn = Filename.temp_file "ocaml" "_toploop.ml" in
+     try_finally
+       ~always:(fun () -> try Sys.remove fn with Sys_error _ -> ())
+       (fun () ->
+	 match
+	   Printf.ksprintf Sys.command "%s > %s" command (Filename.quote fn)
+	 with
+	 | 0 -> ignore (Toploop.use_file Format.std_formatter fn : bool)
+	 | n -> Format.printf "Command exited with code %d.@." n)
+
+   let () =
+     let name = "use_output" in
+     if not (Hashtbl.mem Toploop.directive_table name) then
+       Hashtbl.add Toploop.directive_table name
+	 (Toploop.Directive_string use_output)
+
+   ;;
+   EOF
+   #remove_directory "+compiler-libs" ;;
+   $ cat - > .ocamlinit <<EOF
+   #use "./use-output.top" ;;
+   #use_output "opam exec -- dune top"  ;;
+   open Prelude ;;
+   #use "topfind";;
+   EOF
+   $ cat - > dune-project <<EOF
+   (lang dune 2.7)
+   (name new_project)
+   (generate_opam_files true)
+   #+end_example
+
+   
