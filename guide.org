@@ -10,8 +10,8 @@
    $ rm -R bin
    $ dune init exe main
    $ echo 'let message = "GOODBYE CRUEL WORLD (is underrated)"' > lib/lib.ml
-   $ echo '(library (name lib))' > lib/dune
-   $ echo '(executable (public_name new_project) (name main) (libraries lib))' > dune
+   $ echo '(library (name lib) (libraries prelude))' > lib/dune
+   $ echo '(executable (public_name new_project) (name main) (libraries prelude lib))' > dune
    $ echo 'let () = print_endline Lib.message' > ./main.ml
    $ cat - > use-output.top <<EOF
    (*
@@ -48,8 +48,8 @@
 	 (Toploop.Directive_string use_output)
 
    ;;
-   EOF
    #remove_directory "+compiler-libs" ;;
+   EOF
    $ cat - > .ocamlinit <<EOF
    #use "./use-output.top" ;;
    #use_output "opam exec -- dune top"  ;;
